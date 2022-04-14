@@ -1,0 +1,111 @@
+version: '3'
+
+services:
+    nginx:
+        container_name: Nginx
+        
+        image: nginx:stable-alpine
+        restart: unless-stopped
+        
+        links:
+            - django
+
+        volumes:
+            - "/home/django-web/conf.d:/etc/nginx/conf.d:ro"
+            - "/home/django-web:/app"
+
+        environment:
+            TZ: "Asia/Shanghai"
+        
+        ports:
+            - '80:80'
+            - '443:443'
+
+
+
+    postgres:
+        container_name: Postgres14
+        
+        image: postgres:14-alpine
+        restart: unless-stopped
+        
+        volumes:
+            - /home/postgresql/data:/var/lib/postgresql/data
+        
+        ports:
+            - "5432:5432"
+
+        environment:
+            TZ: "Asia/Shanghai"
+            POSTGRES_PASSWORD: example
+        
+
+
+    redis:
+        container_name: Redis
+        
+        image: redis:alpine
+        restart: unless-stopped
+        
+        volumes:
+            - "/home/redis/data:/data"
+
+        environment:
+            TZ: "Asia/Shanghai"
+        
+
+
+    django:
+        container_name: Django
+        
+        image: django:latest
+        restart: unless-stopped
+        
+        links:
+            - postgres
+            - redis
+            - leaf-server
+
+        volumes:
+            - "/home/django-web:/app"
+            #- "socket:/unix_socket"
+
+        environment:
+            TZ: "Asia/Shanghai"
+        
+        working_dir: "/app"
+
+        command: ["uwsgi", "--ini", "uwsgi.ini"]
+
+
+
+
+    leaf-server:
+        container_name: leaf-server
+
+        image: leaf-server
+        restart: unless-stopped
+
+        #ports:
+        #    - 8080:8080
+        #    - 2182:2182
+
+        depends_on:
+            - leaf-zookeeper
+
+
+
+    leaf-zookeeper:
+        container_name: leaf-zookeeper
+
+        image: zookeeper:3.4
+        restart: unless-stopped
+
+        hostname: leaf-zookeeper
+
+        ports:
+            - 2181:2181
+
+        environment:
+            ZOO_MY_ID: 1
+            ZOO_SERVERS: server.1=leaf-zookeeper:2888:3888
