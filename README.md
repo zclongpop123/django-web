@@ -1,1 +1,1 @@
-# django-web
+# 基于django的web服务
